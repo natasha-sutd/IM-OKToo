@@ -82,6 +82,12 @@ async function addTask(descriptionFromParent?: string) {
   }
 }
 
+// Form submit handler that takes an Event
+async function handleFormSubmit(event: Event) {
+  event.preventDefault();
+  await addTask();
+}
+
 async function removeTask(idx: number) {
   const currentUser = getCurrentUsername();
     if (!currentUser) {
@@ -159,7 +165,7 @@ defineExpose({
     <h2 class="text-xl font-semibold mb-2 animate-fade-in">To-Do List</h2>
     
     <!-- Add Task Form -->
-    <form @submit.prevent="addTask" class="flex gap-2">
+    <form @submit.prevent="handleFormSubmit" class="flex gap-2">
       <Input v-model="newTask" placeholder="Add a new task..." class="flex-1 transition-all duration-300 focus:ring-2 focus:ring-green-300" />
       <Button type="submit" class="transition-all duration-300 hover:scale-105">Add</Button>
     </form>

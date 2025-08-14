@@ -385,7 +385,7 @@ app.post('/api/calendar/add', async (req, res) => {
   }
 });
 
-app.post('/calendar/delete', async (req, res) => {
+app.post('/api/calendar/delete', async (req, res) => {
   try {
     console.log('Routing POST /api/calendar/delete to calendar-service');
     const response = await fetch(`${SERVICES.calendar}/calendar/delete`, {
@@ -401,7 +401,7 @@ app.post('/calendar/delete', async (req, res) => {
   }
 });
 
-app.post('/calendar/modify', async (req, res) => {
+app.post('/api/calendar/modify', async (req, res) => {
   try {
     console.log('Routing POST /api/calendar/modify to calendar-service');
     const response = await fetch(`${SERVICES.calendar}/calendar/modify`, {
@@ -418,7 +418,7 @@ app.post('/calendar/modify', async (req, res) => {
 });
 
 // Google Calendar routes
-app.get('/calendar/authgooglecalendar', async (req, res) => {
+app.get('/api/calendar/authgooglecalendar', async (req, res) => {
   try {
     console.log('Routing /api/calendar/authgooglecalendar to calendar-service');
     const queryString = new URLSearchParams(req.query as any).toString();
@@ -436,7 +436,7 @@ app.get('/calendar/authgooglecalendar', async (req, res) => {
 });
 
 // Auth route
-app.get('/calendar/auth', async (req, res) => {
+app.get('/api/calendar/auth', async (req, res) => {
   try {
     console.log('Routing /api/calendar/auth to calendar-service');
     const queryString = new URLSearchParams(req.query as any).toString();
@@ -454,7 +454,7 @@ app.get('/calendar/auth', async (req, res) => {
 });
 
 // Calendars route
-app.get('/calendar/calendars', async (req, res) => {
+app.get('/api/calendar/calendars', async (req, res) => {
   try {
     console.log('Routing /api/calendar/calendars to calendar-service');
     const response = await fetch(`${SERVICES.calendar}/calendar/calendars`);
@@ -467,7 +467,7 @@ app.get('/calendar/calendars', async (req, res) => {
 });
 
 // Events route
-app.get('/calendar/events', async (req, res) => {
+app.get('/api/calendar/events', async (req, res) => {
   try {
     console.log('Routing /api/calendar/events to calendar-service');
     const queryString = new URLSearchParams(req.query as any).toString();
@@ -524,9 +524,9 @@ app.get('/api/scrape-*', async (req, res) => {
   }
 });
 
-app.get('/scraper', async (req, res) => {
+app.get('/api/scraper', async (req, res) => {
   try {
-    console.log('Routing /scraper to scraper-service');
+    console.log('Routing /api/scraper to scraper-service');
     const queryString = new URLSearchParams(req.query as any).toString();
     const url = `${SERVICES.scraper}/scraper${queryString ? '?' + queryString : ''}`;
     const response = await fetch(url);
