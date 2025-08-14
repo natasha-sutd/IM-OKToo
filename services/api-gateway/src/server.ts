@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
@@ -7,13 +7,30 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Enhanced CORS configuration
+// Enhanced CORS configuration with security headers
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
+  origin: [
+    // Local development
+    'http://localhost:5173', 
+    'http://localhost:3000', 
+    'http://localhost:3001',
+    // Production URLs
+    'https://frontend-e2tf.onrender.com',
+    'https://api-gateway-latest-d2sg.onrender.com',
+    // Allow all Render domains for flexibility
+    /https:\/\/.*\.onrender\.com$/
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with', 'Access-Control-Allow-Origin']
 }));
+
+// Additional security headers for Google OAuth
+app.use((req: any, res: any, next: any) => {
+  res.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  next();
+});
 
 app.use(express.json());
 
@@ -21,12 +38,28 @@ app.use(express.json());
 // ENVIRONMENT-AWARE SERVICE CONFIGURATION
 // ===========================================
 
-// Detect environment - Docker vs Local
-const isDocker = process.env.NODE_ENV === 'docker' || process.env.DOCKER === 'true';
+// Detect environment - Force production mode on Render
+// Explicitly check for Render environment variables
+const isRender = process.env.RENDER === 'true' || 
+                 !!process.env.RENDER_SERVICE_ID || 
+                 !!process.env.RENDER_EXTERNAL_URL ||
+                 process.env.NODE_ENV === 'production';
+
+const isDocker = !isRender && 
+                 (process.env.NODE_ENV === 'docker' || process.env.DOCKER === 'true');
+
+console.log('🔍 Environment Detection:');
+console.log('- RENDER:', process.env.RENDER);
+console.log('- RENDER_SERVICE_ID:', !!process.env.RENDER_SERVICE_ID);
+console.log('- RENDER_EXTERNAL_URL:', !!process.env.RENDER_EXTERNAL_URL);
+console.log('- NODE_ENV:', process.env.NODE_ENV);
+console.log('- DOCKER:', process.env.DOCKER);
+console.log('- isRender:', isRender);
+console.log('- isDocker:', isDocker);
 
 // Service URL configuration based on environment
 const SERVICES = isDocker ? {
-  // Docker internal network URLs
+  // Docker internal network URLs (only for local Docker Compose)
   login: 'http://login-service:3004',
   tasks: 'http://tasks-service:3006',
   forum: 'http://forum-service:3003',
@@ -34,7 +67,7 @@ const SERVICES = isDocker ? {
   claude: 'http://claude-service:3002',
   scraper: 'http://scraper-service:3007'
 } : {
-  // Production URLs for fallback
+  // Production URLs for Render deployment
   login: 'https://login-service-uezx.onrender.com',
   tasks: 'https://tasks-service-dlpw.onrender.com',
   forum: 'https://forum-service-oj46.onrender.com',
@@ -43,11 +76,11 @@ const SERVICES = isDocker ? {
   scraper: 'https://scraper-service-365p.onrender.com'
 };
 
-console.log(`🌍 Environment: ${isDocker ? 'Docker' : 'Local Development'}`);
+console.log(`🌍 Environment: ${isDocker ? 'Docker' : 'Production'}`);
 console.log('📍 Service URLs:', SERVICES);
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (req: any, res: any) => {
   res.json({ 
     status: 'ok', 
     service: 'api-gateway',
@@ -62,7 +95,7 @@ console.log('Setting up API Gateway routes...');
 // LOGIN SERVICE ROUTES (/api prefix)
 // ===========================================
 
-app.post('/api/validate', async (req, res) => {
+app.post('/api/validate', async (req: any, res: any) => {
   try {
     console.log('Routing /api/validate to login-service');
     console.log('Request body:', req.body);
@@ -85,12 +118,12 @@ app.post('/api/validate', async (req, res) => {
     console.log('Response data:', data);
     
     res.status(response.status).json(data);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error routing to login service:', error);
     res.status(500).json({ 
       error: 'Gateway routing error', 
-      message: error.message,
-      details: error.toString()
+      message: error?.message || 'Unknown error',
+      details: error?.toString() || 'No details available'
     });
   }
 });
@@ -114,16 +147,44 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/check-google-user', async (req, res) => {
   try {
     console.log('Routing /api/check-google-user to login-service');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('Target URL:', `${SERVICES.login}/login/check-google-user`);
+    
     const response = await fetch(`${SERVICES.login}/login/check-google-user`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req.body)
     });
+    
+    console.log('Login service response status:', response.status);
+    console.log('Login service response headers:', response.headers);
+    
+    if (!response.ok) {
+      console.error('Login service returned error status:', response.status);
+      const errorText = await response.text();
+      console.error('Login service error response:', errorText);
+      return res.status(response.status).json({ 
+        error: 'Login service error', 
+        details: errorText,
+        status: response.status 
+      });
+    }
+    
     const data = await response.json();
+    console.log('Login service response data:', data);
     res.status(response.status).json(data);
   } catch (error) {
     console.error('Error routing to login service:', error);
-    res.status(500).json({ error: 'Gateway routing error' });
+    console.error('Error details:', {
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack
+    });
+    res.status(500).json({ 
+      error: 'Gateway routing error', 
+      message: error?.message || 'Unknown error',
+      details: error?.toString() || 'No details available'
+    });
   }
 });
 

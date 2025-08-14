@@ -3,17 +3,27 @@ import { eachMinuteOfInterval, format } from 'date-fns'
 import { google , calendar_v3 } from 'googleapis'
 import getConnection from '../db.js'
 
+// Log environment variables for debugging
+console.log('📅 Calendar Service - Environment Check:');
+console.log('- CLIENT_ID:', process.env.CLIENT_ID ? '✅ Set' : '❌ Missing');
+console.log('- CLIENT_SECRET:', process.env.CLIENT_SECRET || process.env.SECRET_ID ? '✅ Set' : '❌ Missing');
+console.log('- REDIRECT_URI:', process.env.REDIRECT_URI || process.env.REDIRECT ? '✅ Set' : '❌ Missing');
+
 const oauth2Client = new google.auth.OAuth2(
   process.env.CLIENT_ID,
-  process.env.SECRET_ID,
-  process.env.REDIRECT
+  process.env.CLIENT_SECRET || process.env.SECRET_ID,
+  process.env.REDIRECT_URI || process.env.REDIRECT
 );
 
 const router = express.Router();
 
 router.get('/testing',(req,res) => {
-  console.log("working");
-  res.json({ status: 'ok', message: 'calendar endpoint works' });
+  console.log("Calendar service endpoint working");
+  res.json({ 
+    status: 'ok', 
+    message: 'calendar endpoint works',
+    oauth_configured: !!(process.env.CLIENT_ID && (process.env.CLIENT_SECRET || process.env.SECRET_ID))
+  });
 })
 
 //  authgooglecalendar for backward compatibility
@@ -128,26 +138,71 @@ router.post('/modify', async (req, res) => {
 
 // Route to initiate Google OAuth2 flow
 router.get('/authgooglecalendar', (req, res) => {
-  // Generate the Google authentication URL
-  const url = oauth2Client.generateAuthUrl({
-    access_type: 'offline', // Request offline access to receive a refresh token
-    scope: 'https://www.googleapis.com/auth/calendar.readonly', // Scope for read-only access to the calendar
-    state: req.query.email as string | undefined,
-  });
-  // Redirect the user to Google's OAuth 2.0 server
-  res.redirect(url);
+  try {
+    console.log('🔐 Starting Google Calendar OAuth flow');
+    console.log('- Request query params:', req.query);
+    
+    // Check if OAuth client is properly configured
+    if (!process.env.CLIENT_ID || !(process.env.CLIENT_SECRET || process.env.SECRET_ID)) {
+      console.error('❌ OAuth not configured - missing CLIENT_ID or CLIENT_SECRET');
+      return res.status(500).json({ 
+        error: 'OAuth not configured', 
+        message: 'Missing Google OAuth credentials' 
+      });
+    }
+
+    // Generate the Google authentication URL
+    const url = oauth2Client.generateAuthUrl({
+      access_type: 'offline', // Request offline access to receive a refresh token
+      scope: 'https://www.googleapis.com/auth/calendar.readonly', // Scope for read-only access to the calendar
+      state: req.query.email as string | undefined,
+    });
+    
+    console.log('✅ Generated OAuth URL:', url);
+    console.log('📧 User email from state:', req.query.email);
+    
+    // Redirect the user to Google's OAuth 2.0 server
+    res.redirect(url);
+  } catch (error) {
+    console.error('❌ Error in OAuth flow initiation:', error);
+    res.status(500).json({ 
+      error: 'OAuth initialization failed', 
+      message: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
 });
 
 // Route to list all calendars
 router.get('/calendars', async (req, res) => {
   try {
+    console.log('📋 Fetching user calendars...');
+    
+    // Check if OAuth client has credentials
+    if (!oauth2Client.credentials || !oauth2Client.credentials.access_token) {
+      console.error('❌ No OAuth credentials available');
+      return res.status(401).json({ 
+        error: 'Not authenticated', 
+        message: 'Please authenticate with Google Calendar first' 
+      });
+    }
+    
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
     const response = await calendar.calendarList.list();
     const calendars = response.data.items ?? [];
+    
+    console.log(`✅ Successfully fetched ${calendars.length} calendars`);
     res.json(calendars);
   } catch (err) {
-    console.error("Error fetching calendars:", err);
-    res.status(500).send("Error fetching calendars");
+    console.error("❌ Error fetching calendars:", err);
+    console.error("Error details:", {
+      name: err instanceof Error ? err.name : 'Unknown',
+      message: err instanceof Error ? err.message : 'Unknown error'
+    });
+    
+    res.status(500).json({ 
+      error: 'Error fetching calendars',
+      message: err instanceof Error ? err.message : 'Unknown error'
+    });
   }
 });
 
@@ -155,18 +210,27 @@ router.get('/calendars', async (req, res) => {
 // Route to list events from a specified calendar
 router.get('/events', async (req, res) => {
   try {
+    console.log('📅 Processing calendar events request');
+    console.log('- Query params:', req.query);
+
     if (!req.query.code) {
-      res.status(400).send("Missing code");
-      return;
+      console.error('❌ Missing authorization code');
+      return res.status(400).json({ error: 'Missing authorization code' });
     }
 
     const code = req.query.code as string;
     const email = req.query.state as string;
-    console.log(email)
+    
+    console.log('🔑 Exchanging code for tokens...');
+    console.log('- Email from state:', email);
+    
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
+    
+    console.log('✅ OAuth tokens obtained successfully');
 
     const calendarId = (req.query.calendar as string) || 'primary';
+    console.log('📋 Fetching events from calendar:', calendarId);
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
@@ -179,15 +243,37 @@ router.get('/events', async (req, res) => {
     });
 
     const events = response.data.items || [];
+    console.log(`📅 Fetched ${events.length} events from Google Calendar`);
 
     // Save fetched events to DB
-    await saveEventsToDB(events,email);
+    await saveEventsToDB(events, email);
+    console.log('💾 Events saved to database successfully');
 
-    // Optional: send back a response
-    res.redirect('http://localhost:5173/calendar');
+    // Check environment to determine redirect URL
+    const isProduction = process.env.NODE_ENV === 'production' || 
+                        process.env.RENDER === 'true' || 
+                        !!process.env.RENDER_SERVICE_ID;
+    
+    const redirectUrl = isProduction 
+      ? 'https://api-gateway-latest-d2sg.onrender.com/calendar'
+      : 'http://localhost:5173/calendar';
+    
+    console.log('🔄 Redirecting to:', redirectUrl);
+    res.redirect(redirectUrl);
+    
   } catch (err) {
-    console.error("OAuth or Calendar error:", err);
-    res.status(500).send("Error fetching or saving events");
+    console.error("❌ OAuth or Calendar error:", err);
+    console.error("Error details:", {
+      name: err instanceof Error ? err.name : 'Unknown',
+      message: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : 'No stack trace'
+    });
+    
+    res.status(500).json({ 
+      error: 'Error fetching or saving events',
+      message: err instanceof Error ? err.message : 'Unknown error',
+      details: 'Check server logs for more information'
+    });
   }
 });
 

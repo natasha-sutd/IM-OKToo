@@ -9,9 +9,17 @@ export default defineConfig({
   plugins: [vue(), tailwindcss()],
   server: {
     host: '0.0.0.0', 
-    port: 5173, 
+    port: 5173,
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      'frontend-e2tf.onrender.com',
+      '.onrender.com'
+    ],
     proxy: {
-      '/api': 'https://api-gateway-latest-d2sg.onrender.com' || 'http://localhost:3001', 
+      '/api': process.env.NODE_ENV === 'production' 
+        ? 'https://api-gateway-latest-d2sg.onrender.com' 
+        : 'http://localhost:3001', 
     }
   },
   resolve: {
