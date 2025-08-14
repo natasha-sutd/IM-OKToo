@@ -38,6 +38,8 @@ type CalendarEvent = {
     rrule: string;
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const getToday = () => {
   const today = new Date();
   return today;
@@ -78,7 +80,7 @@ async function deleteEvent() {
   isDeleting.value = true;
   const eventId = {id: popoverEvent.value?.id};
 
-  const response = await fetch("http://localhost:3001/calendar/delete",
+  const response = await fetch(`${API_BASE}/api/calendar/delete`,
   {
       method: 'POST',
       body: JSON.stringify(eventId),
@@ -110,7 +112,7 @@ async function retrieveEvents() {
   const events: CalendarEvent[] = [];
   const email = localStorage.getItem("email");
 
-  const response = await fetch(`http://localhost:3001/calendar/all?email=${email}`,
+  const response = await fetch(`${API_BASE}/api/calendar/all?email=${email}`,
   {
       method: 'GET',
       headers: {
@@ -284,7 +286,7 @@ onMounted(async () => {
 
         const eventData = {id: updatedEvent.id, start: format(newStart, 'yyyy-MM-dd HH:mm:ss'), end: format(newEnd, 'yyyy-MM-dd HH:mm:ss')};
 
-        const response = await fetch("http://localhost:3001/calendar/modify",
+        const response = await fetch(`${API_BASE}/api/calendar/modify`,
         {
             method: 'POST',
             body: JSON.stringify(eventData),

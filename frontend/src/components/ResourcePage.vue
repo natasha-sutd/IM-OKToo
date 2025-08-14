@@ -45,6 +45,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 type LinkItem = {
   title: string
   url: string
@@ -66,7 +68,7 @@ const newsList = ref([
 
 async function extractTitlesUniversal(url: string): Promise<string[]> {
   try {
-    const api = `http://localhost:3001/api/scrape-titles?url=${encodeURIComponent(url)}`
+    const api = `${API_BASE}/api/scrape-titles?url=${encodeURIComponent(url)}`
     const res = await fetch(api)
     if (!res.ok) throw new Error(`Backend error: ${res.status}`)
     const { titles } = await res.json()

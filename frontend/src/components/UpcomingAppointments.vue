@@ -6,6 +6,7 @@ const events = ref<any[]>([])
 
 export default {
   setup() {
+    const API_BASE = import.meta.env.VITE_API_URL || '';
     const events = ref<any[]>([])
 
     function isToday(date: Date) {
@@ -24,7 +25,7 @@ export default {
     async function retrieveEvents() {
       const email = localStorage.getItem("email");
 
-      const response = await fetch(`http://localhost:3001/calendar/all?email=${email}`, {
+      const response = await fetch(`${API_BASE}/api/calendar/all?email=${email}`, {
         method: 'GET',
         headers: {
           'Content-type': 'application/json'

@@ -293,6 +293,7 @@ import { useRouter } from 'vue-router'
 
 export default {
   setup() {
+    const API_BASE = import.meta.env.VITE_API_URL || '';
     const posts = ref<any[]>([])
     const username = ref('')
     const loading = ref(true)
@@ -328,7 +329,7 @@ export default {
       try {
         loading.value = true
         error.value = null
-        const response = await fetch('http://localhost:3001/posts')
+        const response = await fetch(`${API_BASE}/api/posts`)
         const data = await response.json()
         posts.value = data
         openStates.value = Array(data.length).fill(false)
@@ -345,7 +346,7 @@ export default {
       if (openStates.value[index] && !comments.value[postId]) {
         loadingComments.value[postId] = true
         try {
-          const res = await fetch(`http://localhost:3001/posts/${postId}/comments`)
+          const res = await fetch(`${API_BASE}/api/posts/${postId}/comments`)
           const data = await res.json()
           comments.value[postId] = Array.isArray(data) && Array.isArray(data[0]) ? data[0] : data
         } catch (err) {
@@ -383,7 +384,7 @@ export default {
       isSubmittingComment.value[postId] = true
 
       try {
-        const response = await fetch('http://localhost:3001/posts/addcomments', {
+        const response = await fetch(`${API_BASE}/api/posts/addcomments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -444,7 +445,7 @@ export default {
       isDeletingComment.value[comment.comment_id] = true
 
       try {
-        const response = await fetch(`http://localhost:3001/posts/deletecomment/${comment.comment_id}`, {
+        const response = await fetch(`${API_BASE}/api/posts/deletecomment/${comment.comment_id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
@@ -488,7 +489,7 @@ export default {
 
     const fetchCategories = async () => {
       try {
-        const response = await fetch('http://localhost:3001/posts/categories')
+        const response = await fetch(`${API_BASE}/api/posts/categories`)
         const data = await response.json()
         categories.value = data.map(cat => cat.name)
       } catch (error) {
@@ -532,7 +533,7 @@ export default {
         };
 
 
-        const response = await fetch('http://localhost:3001/posts/addposts', {
+        const response = await fetch(`${API_BASE}/api/posts/addposts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(postData),
@@ -584,7 +585,7 @@ export default {
           return;
         }
 
-        const response = await fetch(`http://localhost:3001/posts/${editPostData.value.post_id}/edit`, {
+        const response = await fetch(`${API_BASE}/api/posts/${editPostData.value.post_id}/edit`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -633,7 +634,7 @@ export default {
       }
 
       try {
-        const response = await fetch(`http://localhost:3001/posts/delete/${post.post_id}`, {
+        const response = await fetch(`${API_BASE}/api/posts/delete/${post.post_id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'

@@ -12,9 +12,11 @@
 <script setup lang="ts">
 import { Button } from './ui/button';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const fetchCalendarData = async () => {
     const email = localStorage.getItem("email");
-    window.location.href = `http://localhost:3001/calendar/authgooglecalendar?email=${email}`;
+    window.location.href = `${API_BASE}/api/calendar/authgooglecalendar?email=${email}`;
 }
 
 </script>

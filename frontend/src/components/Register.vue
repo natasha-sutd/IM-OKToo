@@ -100,6 +100,7 @@ import { useRouter, useRoute } from 'vue-router'
 export default {
     name: 'RegisterPage',
     setup() {
+        const API_BASE = import.meta.env.VITE_API_URL || '';
         const router = useRouter()
         const route = useRoute()
 
@@ -201,7 +202,7 @@ export default {
             isLoading.value = true
 
             try {
-                const response = await fetch('https://api-gateway-latest-d2sg.onrender.com/register', {
+                const response = await fetch(`${API_BASE}/api/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

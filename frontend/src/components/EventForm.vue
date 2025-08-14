@@ -14,6 +14,7 @@ import * as z from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useRouter } from 'vue-router'
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
 const router = useRouter()
 
 const d = new Date()
@@ -120,7 +121,7 @@ const onSubmit = form.handleSubmit(async (values) => {
     ...values,
     email
   }
-  const response = await fetch("http://localhost:3001/calendar/add",
+  const response = await fetch(`${API_BASE}/api/calendar/add`,
   {
       method: 'POST',
       body: JSON.stringify(payload),

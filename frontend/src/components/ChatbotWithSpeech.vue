@@ -5,6 +5,8 @@ import { Button } from '../components/ui/button'
 // @ts-ignore: PNG import for mascot image
 import lionMascot from '@/assets/lionmascot.png'
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 interface ChatMessage {
   sender: 'user' | 'bot'
   text: string
@@ -35,7 +37,7 @@ function scrollToBottom() {
 // call the backend claude endpoint
 async function getClaudeReply(userText: string): Promise<string> {
   try {
-    const response = await fetch('http://localhost:3001/claude', {
+    const response = await fetch(`${API_BASE}/api/claude`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: userText })

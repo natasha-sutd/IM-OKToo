@@ -80,6 +80,7 @@ import { useRouter } from 'vue-router'
 export default {
     name: 'LoginPage',
     setup() {
+        const API_BASE = import.meta.env.VITE_API_URL || '';
         // Initialize router
         const router = useRouter()
 
@@ -131,7 +132,7 @@ export default {
                 // use the new API that i just created
                 console.log("validating the user")
 
-                const response = await fetch('https://api-gateway-latest-d2sg.onrender.com/validate', {
+                const response = await fetch(`${API_BASE}/api/validate`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -211,7 +212,7 @@ export default {
                 // Decode the JWT token to get user info
                 const user_id = decodeJWT(response.credential)
 
-                const checkResponse = await fetch("https://api-gateway-latest-d2sg.onrender.com/check-google-user", {
+                const checkResponse = await fetch(`${API_BASE}/api/check-google-user`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -228,7 +229,7 @@ export default {
                     localStorage.setItem('email', user_id.email)
                     localStorage.setItem('googleAuth', 'true')
 
-                    await fetch('https://api-gateway-latest-d2sg.onrender.com/update-last-login', {
+                    await fetch(`${API_BASE}/api/update-last-login`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ username: checkData.username })
