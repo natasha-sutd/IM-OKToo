@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3001;
 
 // Enhanced CORS configuration
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with']
@@ -25,7 +25,16 @@ app.use(express.json());
 const isDocker = process.env.NODE_ENV === 'docker' || process.env.DOCKER === 'true';
 
 // Service URL configuration based on environment
-const SERVICES = {
+const SERVICES = isDocker ? {
+  // Docker internal network URLs
+  login: 'http://login-service:3004',
+  tasks: 'http://tasks-service:3006',
+  forum: 'http://forum-service:3003',
+  calendar: 'http://calendar-service:3005',
+  claude: 'http://claude-service:3002',
+  scraper: 'http://scraper-service:3007'
+} : {
+  // Production URLs for fallback
   login: 'https://login-service-uezx.onrender.com',
   tasks: 'https://tasks-service-dlpw.onrender.com',
   forum: 'https://forum-service-oj46.onrender.com',
@@ -50,28 +59,45 @@ app.get('/health', (req, res) => {
 console.log('Setting up API Gateway routes...');
 
 // ===========================================
-// LOGIN SERVICE ROUTES (Direct mapping)
+// LOGIN SERVICE ROUTES (/api prefix)
 // ===========================================
 
-app.post('/validate', async (req, res) => {
+app.post('/api/validate', async (req, res) => {
   try {
-    console.log('Routing /validate to login-service');
+    console.log('Routing /api/validate to login-service');
+    console.log('Request body:', req.body);
+    console.log('Target URL:', `${SERVICES.login}/login/validate`);
+    
     const response = await fetch(`${SERVICES.login}/login/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req.body)
     });
+    
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+    
+    if (!response.ok) {
+      console.log('Response not OK, status:', response.status);
+    }
+    
     const data = await response.json();
+    console.log('Response data:', data);
+    
     res.status(response.status).json(data);
   } catch (error) {
     console.error('Error routing to login service:', error);
-    res.status(500).json({ error: 'Gateway routing error' });
+    res.status(500).json({ 
+      error: 'Gateway routing error', 
+      message: error.message,
+      details: error.toString()
+    });
   }
 });
 
-app.post('/register', async (req, res) => {
+app.post('/api/register', async (req, res) => {
   try {
-    console.log('Routing /register to login-service');
+    console.log('Routing /api/register to login-service');
     const response = await fetch(`${SERVICES.login}/login/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -85,9 +111,9 @@ app.post('/register', async (req, res) => {
   }
 });
 
-app.post('/check-google-user', async (req, res) => {
+app.post('/api/check-google-user', async (req, res) => {
   try {
-    console.log('Routing /check-google-user to login-service');
+    console.log('Routing /api/check-google-user to login-service');
     const response = await fetch(`${SERVICES.login}/login/check-google-user`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -101,9 +127,9 @@ app.post('/check-google-user', async (req, res) => {
   }
 });
 
-app.post('/update-last-login', async (req, res) => {
+app.post('/api/update-last-login', async (req, res) => {
   try {
-    console.log('Routing /update-last-login to login-service');
+    console.log('Routing /api/update-last-login to login-service');
     const response = await fetch(`${SERVICES.login}/login/update-last-login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -203,7 +229,7 @@ app.get('/api/posts', async (req, res) => {
 });
 
 // Get categories
-app.get('/posts/categories', async (req, res) => {
+app.get('/api/posts/categories', async (req, res) => {
   try {
     console.log('Routing /api/posts/categories to forum-service');
     const response = await fetch(`${SERVICES.forum}/posts/categories`);
@@ -216,7 +242,7 @@ app.get('/posts/categories', async (req, res) => {
 });
 
 // Add posts
-app.post('/posts/addposts', async (req, res) => {
+app.post('/api/posts/addposts', async (req, res) => {
   try {
     console.log('Routing POST /api/posts/addposts to forum-service');
     const response = await fetch(`${SERVICES.forum}/posts/addposts`, {
@@ -233,7 +259,7 @@ app.post('/posts/addposts', async (req, res) => {
 });
 
 // Add comments
-app.post('/posts/addcomments', async (req, res) => {
+app.post('/api/posts/addcomments', async (req, res) => {
   try {
     console.log('Routing POST /api/posts/addcomments to forum-service');
     const response = await fetch(`${SERVICES.forum}/posts/addcomments`, {
@@ -250,7 +276,7 @@ app.post('/posts/addcomments', async (req, res) => {
 });
 
 // Get comments for a post
-app.get('/posts/:postId/comments', async (req, res) => {
+app.get('/api/posts/:postId/comments', async (req, res) => {
   try {
     console.log(`Routing /api/posts/${req.params.postId}/comments to forum-service`);
     const response = await fetch(`${SERVICES.forum}/posts/${req.params.postId}/comments`);
@@ -263,7 +289,7 @@ app.get('/posts/:postId/comments', async (req, res) => {
 });
 
 // Delete comment
-app.delete('/posts/deletecomment/:commentId', async (req, res) => {
+app.delete('/api/posts/deletecomment/:commentId', async (req, res) => {
   try {
     console.log(`Routing DELETE /api/posts/deletecomment/${req.params.commentId} to forum-service`);
     const response = await fetch(`${SERVICES.forum}/posts/deletecomment/${req.params.commentId}`, {
@@ -280,7 +306,7 @@ app.delete('/posts/deletecomment/:commentId', async (req, res) => {
 });
 
 // Edit post
-app.put('/posts/:postId/edit', async (req, res) => {
+app.put('/api/posts/:postId/edit', async (req, res) => {
   try {
     console.log(`Routing PUT /api/posts/${req.params.postId}/edit to forum-service`);
     const response = await fetch(`${SERVICES.forum}/posts/${req.params.postId}/edit`, {
@@ -297,7 +323,7 @@ app.put('/posts/:postId/edit', async (req, res) => {
 });
 
 // Delete post
-app.delete('/posts/delete/:postId', async (req, res) => {
+app.delete('/api/posts/delete/:postId', async (req, res) => {
   try {
     console.log(`Routing DELETE /api/posts/delete/${req.params.postId} to forum-service`);
     const response = await fetch(`${SERVICES.forum}/posts/delete/${req.params.postId}`, {
@@ -314,10 +340,10 @@ app.delete('/posts/delete/:postId', async (req, res) => {
 });
 
 // ===========================================
-// CALENDAR SERVICE ROUTES
+// CALENDAR SERVICE ROUTES (/api prefix)
 // ===========================================
 
-app.get('/calendar/testing', async (req, res) => {
+app.get('/api/calendar/testing', async (req, res) => {
   try {
     console.log('Routing /api/calendar/testing to calendar-service');
     const response = await fetch(`${SERVICES.calendar}/calendar/testing`);
@@ -329,7 +355,7 @@ app.get('/calendar/testing', async (req, res) => {
   }
 });
 
-app.get('/calendar/all', async (req, res) => {
+app.get('/api/calendar/all', async (req, res) => {
   try {
     console.log('Routing /api/calendar/all to calendar-service');
     const queryString = new URLSearchParams(req.query as any).toString();
@@ -343,7 +369,7 @@ app.get('/calendar/all', async (req, res) => {
   }
 });
 
-app.post('/calendar/add', async (req, res) => {
+app.post('/api/calendar/add', async (req, res) => {
   try {
     console.log('Routing POST /api/calendar/add to calendar-service');
     const response = await fetch(`${SERVICES.calendar}/calendar/add`, {

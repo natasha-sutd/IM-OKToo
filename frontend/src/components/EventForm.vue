@@ -114,12 +114,14 @@ const form = useForm({
 
 const onSubmit = form.handleSubmit(async (values) => {
   console.log('onSubmit called', values);
-  values.caretaker = localStorage.getItem('username')
-
+  
   const email = localStorage.getItem('email')
+  const caretaker = localStorage.getItem('username')
+  
   const payload = {
     ...values,
-    email
+    email,
+    caretaker
   }
   const response = await fetch(`${API_BASE}/api/calendar/add`,
   {

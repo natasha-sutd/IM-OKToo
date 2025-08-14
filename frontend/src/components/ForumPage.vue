@@ -491,7 +491,7 @@ export default {
       try {
         const response = await fetch(`${API_BASE}/api/posts/categories`)
         const data = await response.json()
-        categories.value = data.map(cat => cat.name)
+        categories.value = data.map((cat: any) => cat.name)
       } catch (error) {
         console.error('Failed to fetch categories:', error)
       }
@@ -555,7 +555,7 @@ export default {
         closeModal();
         alert('Post created successfully!');
 
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error creating post:', error);
         alert('Failed to create post: ' + error.message);
       } finally {
@@ -563,7 +563,7 @@ export default {
       }
     };
 
-    const startEditPost = (post) => {
+    const startEditPost = (post: any) => {
       editPostData.value = {
         post_id: post.post_id,
         title: post.title,
@@ -609,7 +609,7 @@ export default {
         isEditing.value = false
         alert('Post updated successfully!')
 
-      } catch (error) {
+      } catch (error: any) {
         console.error('Edit error:', error)
         alert('Failed to update post: ' + error.message)
       }
