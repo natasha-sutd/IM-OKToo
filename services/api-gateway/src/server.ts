@@ -26,12 +26,12 @@ const isDocker = process.env.NODE_ENV === 'docker' || process.env.DOCKER === 'tr
 
 // Service URL configuration based on environment
 const SERVICES = {
-  login: isDocker ? 'http://login-service:3004' : 'http://localhost:3004',
-  tasks: isDocker ? 'http://tasks-service:3006' : 'http://localhost:3006',
-  forum: isDocker ? 'http://forum-service:3003' : 'http://localhost:3003',
-  calendar: isDocker ? 'http://calendar-service:3005' : 'http://localhost:3005',
-  claude: isDocker ? 'http://claude-service:3002' : 'http://localhost:3002',
-  scraper: isDocker ? 'http://scraper-service:3007' : 'http://localhost:3007'
+  login: 'https://login-service-uezx.onrender.com',
+  tasks: 'https://tasks-service-dlpw.onrender.com',
+  forum: 'https://forum-service-oj46.onrender.com',
+  calendar: 'https://calendar-service-qrrh.onrender.com',
+  claude: 'https://claude-service.onrender.com',
+  scraper: 'https://scraper-service-365p.onrender.com'
 };
 
 console.log(`🌍 Environment: ${isDocker ? 'Docker' : 'Local Development'}`);

@@ -8,8 +8,10 @@ import tailwindcss from "@tailwindcss/vite"
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
   server: {
+    host: '0.0.0.0', 
+    port: 5173, 
     proxy: {
-      '/api': 'http://localhost:3001', 
+      '/api': 'https://api-gateway-latest-d2sg.onrender.com' || 'http://localhost:3001', 
     }
   },
   resolve: {
